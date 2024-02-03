@@ -1,6 +1,6 @@
-module github.com/trustpilot/pagerduty-notifier
+module github.com/dotisopropyl/pagerduty-on-call
 
-go 1.13
+go 1.20
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.5.0
@@ -8,4 +8,4 @@ require (
 	github.com/shurcooL/trayhost v0.0.0-20181020202213-114974ef9e16
 )
 
-require github.com/google/go-querystring v1.1.0 // indirect
+require github.com/google/go-querystring v1.1.0

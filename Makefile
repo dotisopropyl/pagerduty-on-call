@@ -1,13 +1,14 @@
-#----------------------------
-APP=PagerdutyNotifier
+APP=On-Call
 APPDIR=dist/$(APP).app
-EXECUTABLE=$(APPDIR)/Contents/MacOS/notifier
-ICONFILE=$(APPDIR)/Contents/Resources/PagerDuty.icns
+EXECUTABLE=$(APPDIR)/Contents/MacOS/on-call
+ICONFILE=$(APPDIR)/Contents/Resources/Icon.icns
 
 build: $(EXECUTABLE) $(ICONFILE)
 
 $(EXECUTABLE): src/*.go
-	go build -o "$@" $^
+	GOOS=darwin GOARCH=amd64 go build -o "$@_amd64" $^
+	GOOS=darwin GOARCH=arm64 go build -o "$@_arm64" $^
+	lipo -create -output "$@" "$@_amd64" "$@_arm64"
 
 run: build
 	open $(APPDIR)
@@ -28,18 +29,18 @@ icon-clear-cache:
 	sudo touch /Applications/*
 	killall Dock; killall Finder
 
-$(ICONFILE): assets/pd-logo.png
-	rm -rf assets/pd.iconset
-	mkdir -p assets/pd.iconset
+$(ICONFILE): assets/icon.png
+	rm -rf assets/icon.iconset
+	mkdir -p assets/icon.iconset
 	for size in 16 32 64 128 256 512 1024; do \
-	   sips -z $$size $$size assets/pd-logo.png --out assets/pd.iconset/icon_$${size}x$${size}.png; \
+	   sips -z $$size $$size assets/icon.png --out assets/icon.iconset/icon_$${size}x$${size}.png; \
 	done
-	iconutil -c icns -o $(ICONFILE) assets/pd.iconset
+	iconutil -c icns -o $(ICONFILE) assets/icon.iconset
 
 clean:
 	rm -rf package
-	rm -rf assets/pd.iconset
-	rm -f assets/pd.icns
+	rm -rf assets/icon.iconset
+	rm -f assets/icon.icns
 	rm -f $(EXECUTABLE)
 	rm -f $(ICONFILE)
 	rm -f dist/Applications
@@ -48,7 +49,5 @@ dmg: build
 	ln -fs /Applications dist
 	hdiutil create -volname $(APP) -srcfolder ./dist -ov ${PACKAGE}
 
-# Some pre-requisits for building this project
 install-dependencies:
 	go mod download
-

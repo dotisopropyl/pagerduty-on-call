@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>notifier</string>
+	<string>on-call</string>
 	<key>CFBundleIconFile</key>
-	<string>PagerDuty</string>
+	<string>Icon</string>
 	<key>CFBundleIdentifier</key>
-	<string>PagerdutyNotifier</string>
+	<string>On-Call</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>LSUIElement</key>

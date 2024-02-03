@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>pagerduty-notifier</string>
+    <string>On-Call</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Applications/PagerdutyNotifier.app/Contents/MacOS/notifier</string>
+        <string>/Applications/On-Call.app/Contents/MacOS/on-call</string>
     </array>
     <key>ProcessType</key>
     <string>Interactive</string>

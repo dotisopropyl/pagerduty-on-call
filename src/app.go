@@ -3,35 +3,32 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
-
 	"github.com/shurcooL/trayhost"
 )
 
-// setup tray icon and menus
 var menuItems = []trayhost.MenuItem{
 	{
-		Title: "Startup on login",
+		Title: "Add to Login Items",
 		Handler: func() {
 			toggleStartup()
 		},
 	},
 	{
-		Title: "Pause",
+		Title: "Pause Notifications",
 		Handler: func() {
 			togglePause()
 		},
 	},
 	{
-		Title: "Info",
+		Title: "Open on GitHub",
 		Handler: func() {
-			openBrowser("https://github.com/trustpilot/pagerduty-notifier/blob/master/README.md")
+			openBrowser("https://github.com/dotisopropyl/pagerduty-on-call")
 		},
 	},
 	trayhost.SeparatorMenuItem(),
@@ -46,46 +43,26 @@ var pause = false
 var pauseStopTime time.Time
 
 func appInit() {
-
-	// On macOS, when you run an app bundle, the working directory of the executed process
-	// is the root directory (/), not the app bundle's Contents/Resources directory.
-	// Change directory to Resources so that we can load resources from there.
 	ep, err := os.Executable()
-	if err != nil {
-		log.Fatalln("os.Executable:", err)
-	}
 	err = os.Chdir(filepath.Join(filepath.Dir(ep), "..", "Resources"))
-	if err != nil {
-		log.Fatalln("os.Chdir:", err)
-	}
-
-	// Load tray icon.
-	iconData, err := ioutil.ReadFile("pd-bw.png")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// Set initial checkmark for autostart
+	iconData, err := ioutil.ReadFile("menubar.png")
 	if existsLaunchConf() {
 		for i, m := range menuItems {
-			if m.Title == "Startup on login" {
-				menuItems[i].Title = "√ Startup on login"
+			if m.Title == "Add to Login Items" {
+				menuItems[i].Title = "Remove from Login Items"
 			}
 		}
 	}
-
 	menuItemsCopy = append(menuItemsCopy, menuItems...)
-	trayhost.Initialize("Pagerduty Notifier", iconData, menuItems)
+	trayhost.Initialize("On-Call", iconData, menuItems)
 }
 
 func togglePause() {
 	if pause {
-		appNotify("Pagerduty Notifier", "Unpausing notifications", "", nil, 10*time.Second)
-		log.Println("Stop pause ...")
-
+		appNotify("On-Call", "Resuming Notifications", "", nil, 10*time.Second)
 		for i, m := range menuItemsCopy {
-			if m.Title == "√ Pause" {
-				menuItemsCopy[i].Title = "Pause"
+			if m.Title == "Resume Notifications" {
+				menuItemsCopy[i].Title = "Pause Notifications"
 			}
 		}
 		trayhost.UpdateMenu(menuItemsCopy)
@@ -94,47 +71,43 @@ func togglePause() {
 			writeTimestamp(time.Now())
 		}
 	} else {
-		msg := "Pausing notifications"
+		msg := "Pausing Notifications"
 		if pauseTimeout > 0 {
 			msg = fmt.Sprintf("%s for %d minutes", msg, pauseTimeout)
 			pauseStopTime = time.Now().Add(time.Duration(pauseTimeout) * time.Minute)
 		}
-		appNotify("Pagerduty Notifier", msg, "", nil, 10*time.Second)
-		log.Println("Start pause ...")
-
+		appNotify("On-Call", msg, "", nil, 10*time.Second)
 		for i, m := range menuItemsCopy {
-			if m.Title == "Pause" {
-				menuItemsCopy[i].Title = "√ Pause"
+			if m.Title == "Pause Notifications" {
+				menuItemsCopy[i].Title = "Resume Notifications"
 			}
 		}
 		trayhost.UpdateMenu(menuItemsCopy)
 		pause = true
 	}
 }
+
 func toggleStartup() {
 	if existsLaunchConf() {
 		if err := deleteLaunchConf(); err != nil {
-			appNotify("Pagerduty Notifier", fmt.Sprintf("Failed to remove from launch configuration: %v", err), "", nil, 10*time.Second)
+			appNotify("On-Call", fmt.Sprintf("Unable to Remove from Login Items: %v", err), "", nil, 10*time.Second)
 		}
-		appNotify("Pagerduty Notifier", "Removed from Launch configuration", "", nil, 10*time.Second)
-
+		appNotify("On-Call", "Removed from Login Items", "", nil, 10*time.Second)
 		for i, m := range menuItemsCopy {
-			if m.Title == "√ Startup on login" {
-				menuItemsCopy[i].Title = "Startup on login"
+			if m.Title == "Remove from Login Items" {
+				menuItemsCopy[i].Title = "Add to Login Items"
 			}
 		}
 		trayhost.UpdateMenu(menuItemsCopy)
-
 	} else {
 		if err := writeLaunchConf(); err != nil {
-			appNotify("Pagerduty Notifier", fmt.Sprintf("Failed to add to launch configuration: %v", err), "", nil, 10*time.Second)
+			appNotify("On-Call", fmt.Sprintf("Unable to Add to Login Items: %v", err), "", nil, 10*time.Second)
 			return
 		}
-		appNotify("Pagerduty Notifier", "Added to launch configuration", "", nil, 10*time.Second)
-
+		appNotify("On-Call", "Added to Login Items", "", nil, 10*time.Second)
 		for i, m := range menuItemsCopy {
-			if m.Title == "Startup on login" {
-				menuItemsCopy[i].Title = "√ Startup on login"
+			if m.Title == "Add to Login Items" {
+				menuItemsCopy[i].Title = "Remove from Login Items"
 			}
 		}
 		trayhost.UpdateMenu(menuItemsCopy)
@@ -142,26 +115,21 @@ func toggleStartup() {
 }
 
 func appEnterLoop() {
-	log.Print("Entering trayhost loop")
 	trayhost.EnterLoop()
 }
 
 func appNotify(title string, message string, url string, image *trayhost.Image, timeout time.Duration) {
-
 	notification := trayhost.Notification{
 		Title:   title,
 		Body:    message,
 		Timeout: timeout,
 	}
-
 	if url != "" {
 		notification.Handler = func() { openBrowser(url) }
 	}
-
 	if image != nil {
 		notification.Image = *image
 	}
-
 	notification.Display()
 }
 
@@ -185,18 +153,5 @@ func getIcon(s string) []byte {
 
 func openBrowser(url string) {
 	var err error
-
-	switch runtime.GOOS {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
+	err = exec.Command("open", url).Start()
 }
